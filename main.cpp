@@ -1,94 +1,85 @@
 #include "mem_pool.h"
 
-void dump_memory(int *addr, int size_in_bytes)
+void dump_memory(char *addr, int size_in_bytes)
 {
-	int i;
-	int size_in_words = size_in_bytes/4;
-
 	cout << "Dumping memory ..." << endl;
-	for(i=0; i<size_in_words; i++)
-	{
-		if(i==0 || (i*4 == (size_in_bytes-4)))
-		{
-			cout << "*(" << addr << " + " << i*4 <<") = " << std::hex << *(addr + i) << endl;
-		}
-	}
+	cout << "At : " << (void *)(addr + 0) << " = " << *addr << endl;
+	cout << "At : " << (void *)(addr + size_in_bytes - 1) << " = " << *(addr + size_in_bytes - 1) << endl;
 }
 
-#define TEST_OBJ_SIZE (1*1024)
 
-int test_1 ()
+int test_1 (int obj_size)
 {
 	int i;
 	mem_pool_status_t status;
 
-	/* Create pool of TEST_OBJ_SIZE byte size */
+	/* Create pool of obj_size byte size */
 	MemPool *mem_pool = mem_pool->getInstance();
 
-	status = mem_pool->create(TEST_OBJ_SIZE);
+	status = mem_pool->create(obj_size);
 	if(status != MEM_POOL_SUCCESS) {
-		cout << endl << "pool create failed for OBJ size = " << TEST_OBJ_SIZE \
+		cout << endl << "pool create failed for OBJ size = " << obj_size \
 			<< ", error = " << status << endl;
 		return 1;
 	}
-	cout << "pool created for OBJ size = " << TEST_OBJ_SIZE << endl;
+	cout << "pool created for OBJ size = " << obj_size << endl;
 
-	int *addr = (int *)mem_pool->allocate(TEST_OBJ_SIZE);
+	char *addr = (char *)mem_pool->allocate(obj_size);
 	if(addr == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
 	}
-	cout << "allocation success, addr = " << addr << endl;
+	cout << "allocation success, addr = " << (void *)addr << endl;
 
-	memset(addr, 0xAB, TEST_OBJ_SIZE*sizeof(char));
+	memset(addr, 'A', obj_size*sizeof(char));
 
-	dump_memory(addr, TEST_OBJ_SIZE);
+	dump_memory(addr, obj_size);
 
-	int *addr1 = (int *)mem_pool->allocate(TEST_OBJ_SIZE);
+	char *addr1 = (char *)mem_pool->allocate(obj_size);
 	if(addr1 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
 	}
-	cout << "allocation success, addr1 = " << addr1 << endl;
+	cout << "allocation success, addr1 = " << (void *)addr1 << endl;
 
-	memset(addr1, 0xCD, TEST_OBJ_SIZE*sizeof(char));
+	memset(addr1, 'B', obj_size*sizeof(char));
 
-	dump_memory(addr1, TEST_OBJ_SIZE);
+	dump_memory(addr1, obj_size);
 
-	int *addr2 = (int *)mem_pool->allocate(TEST_OBJ_SIZE);
+	char *addr2 = (char *)mem_pool->allocate(obj_size);
 	if(addr2 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
 	}
-	cout << "allocation success, addr2 = " << addr2 << endl;
+	cout << "allocation success, addr2 = " << (void *)addr2 << endl;
 
-	memset(addr2, 0xEF, TEST_OBJ_SIZE*sizeof(char));
+	memset(addr2, 'C', obj_size*sizeof(char));
 
-	dump_memory(addr2, TEST_OBJ_SIZE);
+	dump_memory(addr2, obj_size);
 
 	status = mem_pool->deallocate(addr1);
 	if(status != MEM_POOL_SUCCESS) {
-		cout << "deallocation failed for address = "<< addr1 <<", error = " << status << endl;
+		cout << "deallocation failed for address = "<< (void *)addr1 <<", error = " << status << endl;
 		return 1;
 	}
-	cout << "deallocation successm addr1 = " << addr1 << endl;
+	cout << "deallocation success, addr1 = " << (void *)addr1 << endl;
 
-	dump_memory(addr, TEST_OBJ_SIZE);
-	dump_memory(addr1, TEST_OBJ_SIZE);
-	dump_memory(addr2, TEST_OBJ_SIZE);
+	dump_memory(addr, obj_size);
+	dump_memory(addr1, obj_size);
+	dump_memory(addr2, obj_size);
 
-	addr1 = (int *)mem_pool->allocate(TEST_OBJ_SIZE);
+	addr1 = (char *)mem_pool->allocate(obj_size);
 	if(addr1 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
 	}
-	cout << "allocation success, addr1 = " << addr1 << endl;
+	cout << "allocation success, addr1 = " << (void *)addr1 << endl;
 
-	memset(addr1, 0xCD, TEST_OBJ_SIZE*sizeof(char));
+	memset(addr1, 'D', obj_size*sizeof(char));
 
-	dump_memory(addr1, TEST_OBJ_SIZE);
+	dump_memory(addr1, obj_size);
 
-	cout << "destroy status : " << mem_pool->destroy(TEST_OBJ_SIZE) << endl;
+	cout << "destroy status : " << mem_pool->destroy(obj_size) << endl;
 
 	cout << "Test complete" << endl;
 
@@ -98,15 +89,15 @@ int test_1 ()
 int test_2(void)
 {
 	mem_pool_status_t status;
-	int obj_size = 16;
+	int obj_size = 1;
 	int obj_num;
 	int pool_idx;
 
-	/* Create pool of TEST_OBJ_SIZE byte size */
+	/* Create pool of obj_size byte size */
 	MemPool *mem_pool = mem_pool->getInstance();
 
 	cout << "Creating pools from 16bytes to 1MB" << endl;
-	for(pool_idx=4; pool_idx<(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		/* Create entry for all pools */
 		status = mem_pool->create(obj_size);
 		if(status != MEM_POOL_SUCCESS) {
@@ -118,9 +109,9 @@ int test_2(void)
 	}
 
 	cout << "Allocating for 1000 objects for each of the pools" << endl;
-	obj_size = 16;
+	obj_size = 1;
 	/* allocate now in all the memory pools available */
-	for(pool_idx=4; pool_idx<(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		for(obj_num=0; obj_num<MEM_POOL_MAX_OBJECTS; obj_num++) {
 			mem_pool->allocate(obj_size);
 		}
@@ -129,8 +120,8 @@ int test_2(void)
 
 	cout << "Destroying pools from 16bytes to 1MB" << endl;
 	/* destroy all memory pools */
-	obj_size = 16;
-	for(pool_idx=4; pool_idx<(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	obj_size = 1;
+	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		mem_pool->destroy(obj_size);
 		obj_size <<= 1;
 	}
@@ -140,6 +131,11 @@ int test_2(void)
 
 int main()
 {
-	//return test_1();
+	int obj_size = 1;
+	for(obj_size=1; obj_size<2*1024*1024; obj_size <<= 1)
+	{
+		test_1(obj_size);
+		cout << endl;
+	}
 	return test_2();
 }

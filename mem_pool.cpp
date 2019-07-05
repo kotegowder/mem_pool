@@ -69,11 +69,11 @@ mem_pool_status_t MemPool::add_pool_entry(int obj_size)
 	}
 
 	/* track the pool address */
-	mem_pools[pool_idx] = (int*)new_pool;
+	mem_pools[pool_idx] = (char *)new_pool;
 
 	/* Allocate pool memory */
-	new_pool->pool_addr = (int*)malloc(obj_size*MEM_POOL_MAX_OBJECTS);
-	if(new_pool == NULL) {
+	new_pool->pool_addr = (char *)malloc(obj_size*MEM_POOL_MAX_OBJECTS);
+	if(new_pool->pool_addr == NULL) {
 		free(new_pool);
 		mem_pools[pool_idx] = MEM_POOL_EMPTY;
 		return MEM_POOL_ERROR_NOT_ENOUGH_MEMORY;
@@ -156,11 +156,12 @@ void * MemPool::allocate(int obj_size)
 
 	if(!is_pool_have_space)
 	{
+		cout << "No space left to allocate for object, maximum limit reached!" << endl;
 		return NULL;
 	}
 
 	/* track the address of new object */
-	pool->pool_obj_addr[slot] = (pool->pool_addr + ((slot*obj_size)/4));
+	pool->pool_obj_addr[slot] = (pool->pool_addr + (slot*pool->pool_obj_size));
 
 	/* Return the address of new object */
 	return (void *)(pool->pool_obj_addr[slot]);
@@ -172,7 +173,7 @@ void * MemPool::allocate(int obj_size)
  * Arguments   : object address to be deallocated
  * Return      : mem_pool_status_t
  */
-mem_pool_status_t MemPool::deallocate(int *address)
+mem_pool_status_t MemPool::deallocate(char *address)
 {
 	mem_pool_t *pool;
 	int        pool_idx;
@@ -184,9 +185,8 @@ mem_pool_status_t MemPool::deallocate(int *address)
 		return MEM_POOL_ERROR_INVALID_ARGUMENT;
 	}
 
-	cout << "check2" << endl;
 	/* Determine the index to mem_pools from a given address */
-	for(pool_idx=4; pool_idx<MEM_POOL_MAX_CNT; pool_idx++)
+	for(pool_idx=MEM_POOL_MIN_VALID_INDEX; pool_idx<MEM_POOL_MAX_CNT; pool_idx++)
 	{
 		/* Get pool handle */
 		if(MEM_POOL_EMPTY == mem_pools[pool_idx]) {
@@ -206,7 +206,7 @@ mem_pool_status_t MemPool::deallocate(int *address)
 	}
 
 	/* determine the slot number from given address */
-	slot = (((address - pool->pool_addr)*4)/pool->pool_obj_size);
+	slot = ((address - pool->pool_addr)/pool->pool_obj_size);
 	if(pool->pool_obj_addr[slot] != address)
 	{
 		return MEM_POOL_ERROR_INVALID_ARGUMENT;

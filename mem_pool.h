@@ -10,8 +10,8 @@ using namespace std;
 
 /* macros */
 #define MEM_POOL_MAX_CNT		(32)
-#define MEM_POOL_VALID_OBJECT_MASK	(0xFFFFFFF0)
-#define MEM_POOL_MIN_VALID_INDEX	(0x4)
+#define MEM_POOL_VALID_OBJECT_MASK	(0xFFFFFFFF)
+#define MEM_POOL_MIN_VALID_INDEX	(0x0)
 #define MEM_POOL_MAX_OBJECTS		(1000)
 #define MEM_POOL_EMPTY	 		(NULL)
 #define MEM_POOL_OBJECT_EMPTY		(NULL)
@@ -24,8 +24,8 @@ using namespace std;
 typedef struct
 {
 	int              pool_obj_size;
-	int              *pool_addr;
-	int              *pool_obj_addr[MEM_POOL_MAX_OBJECTS];
+	char             *pool_addr;
+	char             *pool_obj_addr[MEM_POOL_MAX_OBJECTS];
 }mem_pool_t;
 
 typedef enum
@@ -43,7 +43,7 @@ class MemPool
 {
 	private:
 		static MemPool *instance;
-		volatile int    *mem_pools[MEM_POOL_MAX_CNT];
+		char           *mem_pools[MEM_POOL_MAX_CNT];
 		MemPool()
 		{
 			int i;
@@ -66,10 +66,10 @@ class MemPool
 			instance = new MemPool();
 			return instance;
 		}
-		mem_pool_status_t create    (int obj_size);
-		void              *allocate (int obj_size);
-		mem_pool_status_t deallocate(int *address);
-		mem_pool_status_t destroy   (int obj_size);
+		mem_pool_status_t create    (int  obj_size);
+		void              *allocate (int  obj_size);
+		mem_pool_status_t deallocate(char *address);
+		mem_pool_status_t destroy   (int  obj_size);
 };
 
 #endif
