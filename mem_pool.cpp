@@ -51,7 +51,6 @@ mem_pool_status_t MemPool::add_pool_entry(int obj_size)
 {
 	mem_pool_t *new_pool;
 	int        pool_idx;
-	int        slot;
 
 	pool_idx = get_mem_pool_idx(obj_size);
 
@@ -79,11 +78,17 @@ mem_pool_status_t MemPool::add_pool_entry(int obj_size)
 		return MEM_POOL_ERROR_NOT_ENOUGH_MEMORY;
 	}
 
+#if (MEM_POOL_MAX_OBJECTS == 32)
+	/* Init pool object slot tracker to zero */
+	new_pool->pool_obj_slot = 0x0;
+#else
+	int slot;
 	/* Init pool object address array to known value */	
 	for(slot=0; slot<MEM_POOL_MAX_OBJECTS; slot++)
 	{
 		new_pool->pool_obj_addr[slot] = MEM_POOL_OBJECT_EMPTY;
 	}
+#endif
 
 	/* record the object size in pool */
 	new_pool->pool_obj_size = obj_size;
@@ -119,7 +124,7 @@ mem_pool_status_t MemPool::create(int obj_size)
  * Arguments   : object size 
  * Return      : valid address otherwise NULL
  */
-void * MemPool::allocate(int obj_size)
+void * MemPool::allocate(int obj_size, bool initialize_zero)
 {
 	mem_pool_t        *pool;
 	int               pool_idx;
@@ -147,7 +152,11 @@ void * MemPool::allocate(int obj_size)
 	/*  Look for empty slot */
 	for(slot=0; slot<MEM_POOL_MAX_OBJECTS; slot++)
 	{
+#if (MEM_POOL_MAX_OBJECTS == 32)
+		if(!(pool->pool_obj_slot & (1U << slot)))
+#else
 		if(pool->pool_obj_addr[slot] == MEM_POOL_OBJECT_EMPTY)
+#endif
 		{
 			is_pool_have_space = true;
 			break;
@@ -160,11 +169,25 @@ void * MemPool::allocate(int obj_size)
 		return NULL;
 	}
 
+	char *obj_addr  = (pool->pool_addr + (slot*pool->pool_obj_size));
+	if(initialize_zero)
+	{
+		/* zero out the previously allocated memory for a given object */
+		memset(obj_addr, 0x0, pool->pool_obj_size);
+	}
+
+#if (MEM_POOL_MAX_OBJECTS == 32)
+	/* track the slot for new object */
+	pool->pool_obj_slot |= (1U << slot);
+	/* Return the address of new object */
+	return ((void*)(obj_addr));
+#else
 	/* track the address of new object */
-	pool->pool_obj_addr[slot] = (pool->pool_addr + (slot*pool->pool_obj_size));
+	pool->pool_obj_addr[slot] = obj_addr;
 
 	/* Return the address of new object */
 	return (void *)(pool->pool_obj_addr[slot]);
+#endif
 }
 
 
@@ -207,16 +230,22 @@ mem_pool_status_t MemPool::deallocate(char *address)
 
 	/* determine the slot number from given address */
 	slot = ((address - pool->pool_addr)/pool->pool_obj_size);
+#if (MEM_POOL_MAX_OBJECTS == 32)
+	slot = (1U << slot);
+	if(!(pool->pool_obj_slot & slot))
+#else
 	if(pool->pool_obj_addr[slot] != address)
+#endif
 	{
 		return MEM_POOL_ERROR_INVALID_ARGUMENT;
 	}
 
-	/* zero out the previously allocated memory for a given object */
-	memset(address, 0x0, pool->pool_obj_size);
-
 	/* clean up the record */
+#if (MEM_POOL_MAX_OBJECTS == 32)
+	pool->pool_obj_slot &= ~slot;
+#else
 	pool->pool_obj_addr[slot] = MEM_POOL_OBJECT_EMPTY;
+#endif
 
 	return MEM_POOL_SUCCESS;
 }

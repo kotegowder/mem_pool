@@ -12,7 +12,7 @@ using namespace std;
 #define MEM_POOL_MAX_CNT		(32)
 #define MEM_POOL_VALID_OBJECT_MASK	(0xFFFFFFFF)
 #define MEM_POOL_MIN_VALID_INDEX	(0x0)
-#define MEM_POOL_MAX_OBJECTS		(1000)
+#define MEM_POOL_MAX_OBJECTS		(32)
 #define MEM_POOL_EMPTY	 		(NULL)
 #define MEM_POOL_OBJECT_EMPTY		(NULL)
 
@@ -25,7 +25,11 @@ typedef struct
 {
 	int              pool_obj_size;
 	char             *pool_addr;
+#if (MEM_POOL_MAX_OBJECTS == 32)
+	int              pool_obj_slot;
+#else
 	char             *pool_obj_addr[MEM_POOL_MAX_OBJECTS];
+#endif
 }mem_pool_t;
 
 typedef enum
@@ -67,7 +71,7 @@ class MemPool
 			return instance;
 		}
 		mem_pool_status_t create    (int  obj_size);
-		void              *allocate (int  obj_size);
+		void              *allocate (int  obj_size, bool initialize_zero);
 		mem_pool_status_t deallocate(char *address);
 		mem_pool_status_t destroy   (int  obj_size);
 };

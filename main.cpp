@@ -24,7 +24,7 @@ int test_1 (int obj_size)
 	}
 	cout << "pool created for OBJ size = " << obj_size << endl;
 
-	char *addr = (char *)mem_pool->allocate(obj_size);
+	char *addr = (char *)mem_pool->allocate(obj_size, true);
 	if(addr == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
@@ -35,7 +35,7 @@ int test_1 (int obj_size)
 
 	dump_memory(addr, obj_size);
 
-	char *addr1 = (char *)mem_pool->allocate(obj_size);
+	char *addr1 = (char *)mem_pool->allocate(obj_size, true);
 	if(addr1 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
@@ -46,7 +46,7 @@ int test_1 (int obj_size)
 
 	dump_memory(addr1, obj_size);
 
-	char *addr2 = (char *)mem_pool->allocate(obj_size);
+	char *addr2 = (char *)mem_pool->allocate(obj_size, true);
 	if(addr2 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
@@ -68,7 +68,7 @@ int test_1 (int obj_size)
 	dump_memory(addr1, obj_size);
 	dump_memory(addr2, obj_size);
 
-	addr1 = (char *)mem_pool->allocate(obj_size);
+	addr1 = (char *)mem_pool->allocate(obj_size, true);
 	if(addr1 == NULL) {
 		cout << "allocation unsuccessful" << endl;
 		return 1;
@@ -96,8 +96,8 @@ int test_2(void)
 	/* Create pool of obj_size byte size */
 	MemPool *mem_pool = mem_pool->getInstance();
 
-	cout << "Creating pools from 16bytes to 1MB" << endl;
-	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	cout << "Creating pools upto 1MB" << endl;
+	for(pool_idx=MEM_POOL_MIN_VALID_INDEX; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		/* Create entry for all pools */
 		status = mem_pool->create(obj_size);
 		if(status != MEM_POOL_SUCCESS) {
@@ -108,20 +108,20 @@ int test_2(void)
 		obj_size <<= 1;
 	}
 
-	cout << "Allocating for 1000 objects for each of the pools" << endl;
+	cout << "Allocating for "<< MEM_POOL_MAX_OBJECTS << " objects for each of the pools" << endl;
 	obj_size = 1;
 	/* allocate now in all the memory pools available */
-	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	for(pool_idx=MEM_POOL_MIN_VALID_INDEX; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		for(obj_num=0; obj_num<MEM_POOL_MAX_OBJECTS; obj_num++) {
-			mem_pool->allocate(obj_size);
+			mem_pool->allocate(obj_size, false);
 		}
 		obj_size <<= 1;
 	}
 
-	cout << "Destroying pools from 16bytes to 1MB" << endl;
+	cout << "Destroying pools" << endl;
 	/* destroy all memory pools */
 	obj_size = 1;
-	for(pool_idx=0; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
+	for(pool_idx=MEM_POOL_MIN_VALID_INDEX; pool_idx<=(MEM_POOL_MAX_CNT-12); pool_idx++) {
 		mem_pool->destroy(obj_size);
 		obj_size <<= 1;
 	}
@@ -132,7 +132,7 @@ int test_2(void)
 int main()
 {
 	int obj_size = 1;
-	for(obj_size=1; obj_size<2*1024*1024; obj_size <<= 1)
+	for(obj_size=1; obj_size<=1*1024*1024; obj_size <<= 1)
 	{
 		test_1(obj_size);
 		cout << endl;
